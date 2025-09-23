@@ -16,6 +16,9 @@
   "author": "Bhushan Mhaske",
   "license": "ISC",
   "dependencies": {
-    "nodemon": "^3.1.10" 
+    "nodemon": "^3.1.10"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }
