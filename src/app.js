@@ -15,3 +15,5 @@ app.use(express.urlencoded({extended: true,limit:"20kb"})) // when data comes fr
 app.use(express.static("public"))  // for storing photos etc. into our server 
 app.use(cookieParser())
 export default app
+
+//
