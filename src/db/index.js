@@ -14,4 +14,4 @@ const connectDB= async ()=>{
 }
 export default connectDB
 
-//
+// when async code completes it returns one promise that we are using into  free index.js 

@@ -9,16 +9,19 @@ dotenv.config({
     path: './env'
 })
 
-connectDB()
+connectDB()  // till here just database(mongoDB) connects 
+               // from db(index.js), returns one promise ,so we use .then & .catch() here 
 .then(()=>{
 
-    const err=app.on("err",(err)=>{
+       app.on("err",(err)=>{
        console.log("application is not able to talk with database",err);
        throw err
        
     })
-    const port=app.listen(process.env.PORT || 8000,()=>{
-        console.log(` server is running at PORT: ${port}`);
+    
+    const port= process.env.PORT || 8000;
+        app.listen(process.env.PORT || 8000,()=>{
+        console.log(` Server is running at PORT: ${port}`);
         
     })
 })
@@ -52,4 +55,3 @@ const app= express()
 
 */
 
-//
