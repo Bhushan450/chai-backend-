@@ -65,7 +65,7 @@ userSchema.methods.generateAccessToken = function(){
         {
            _id: this._id,
            email:this.email,
-           username:tjis.userSchema,    // all this is comes from database 
+           username:this.userSchema,    // all this is comes from database 
            fullName:this.fullname
         },
         process.env.ACCESS_TOKEN_SECRET,
@@ -79,9 +79,9 @@ userSchema.methods.generateRefreshToken = function(){
         {
            _id: this._id,   // comes from database  
         },
-        process.env.ACCESS_TOKEN_SECRET,
+        process.env.REFRESH-TOKEN_SECRET,
         {
-            expiresIn : process.env.ACCESS_TOKEN_EXPIRY
+            expiresIn : process.env.REFREH_TOKEN_EXPIRY
         }
     )
 }
