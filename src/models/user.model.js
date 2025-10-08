@@ -29,7 +29,7 @@ const userSchema =new Schema(
             type: String,  // cloudinary url
             required: true,
     },
-        covername:{
+        coverImage:{
             type: String,
     },
         watchHistory:[
@@ -51,7 +51,7 @@ const userSchema =new Schema(
 
 userSchema.pre("save",async function(next){   // pre is a hook(middleware)
     if(!this.isModified("password")) return next();
-   this.password = bcrypt.hash(this.password,10)
+   this.password = await bcrypt.hash(this.password,10)
    next()
 })                         // password encryption and checking is done by 'bcrypt'
 
