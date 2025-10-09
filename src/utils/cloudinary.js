@@ -26,7 +26,7 @@ import fs from "fs"  // fs=> file system
          
        } catch (error) {
         fs.unlinkSync(localFilePath) // remove the locally saved temporary file as the upload operation got failed 
-        
+        return null;
        }
     }
 
