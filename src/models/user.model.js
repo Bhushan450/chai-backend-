@@ -55,8 +55,8 @@ userSchema.pre("save",async function(next){   // pre is a hook(middleware)
    next()
 })                         // password encryption and checking is done by 'bcrypt'
 
-userSchema.methods.isPasswordCorrect = async function(password){
-  return await bcrypt.compare(password,this.password)
+userSchema.methods.isPasswordCorrect = async function(password){  // .methods is a object provided by mongoose which allows us to define custom instance methods .. more on chatgpt  
+  return await bcrypt.compare(password,this.password) // 'password' is comes from user(req.body) & 'this.password' comes from databse 
 
 }
 
@@ -65,8 +65,8 @@ userSchema.methods.generateAccessToken = function(){
         {
            _id: this._id,
            email:this.email,
-           username:this.userSchema,    // all this is comes from database 
-           fullName:this.fullname
+           username:this.username,    // all this is comes from database 
+           fullName:this.fullname,
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -79,7 +79,7 @@ userSchema.methods.generateRefreshToken = function(){
         {
            _id: this._id,   // comes from database  
         },
-        process.env.REFRESH-TOKEN_SECRET,
+        process.env.REFRESH_TOKEN_SECRET,
         {
             expiresIn : process.env.REFREH_TOKEN_EXPIRY
         }
@@ -87,4 +87,4 @@ userSchema.methods.generateRefreshToken = function(){
 }
 
 
-export const User = mongoose.model("User",userSchema)
+export const User = mongoose.model("User",userSchema)  // *** 

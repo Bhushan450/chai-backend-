@@ -4,8 +4,25 @@ import { User } from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessAndRefreshTokens= async (userId)=>{
+    try {
+       const user= await User.findById(userId)
+       const accessToken=user.generateAccessToken()
+       const refreshToken=user.generateRefreshToken()
+
+       user.refreshToken= refreshToken   
+       await user.save({validateBeforeSave: false})  // save refreshToken into database 
+
+       return {accessToken, refreshToken}
+       
+    } catch (error) {
+        throw new ApiError(500,"something went wrong while generating access and refresh token")
+        
+    }
+}
+
 const registerUser = asyncHandler(async (req,res)=>{
-     /* steps for register user in databse*/
+     /* Steps for register user in databse*/
 
      // get user details from frontend - what data fields we required in model(username,email,pasword etc.)
      // validataion - not empty , right field etc.
@@ -19,7 +36,7 @@ const registerUser = asyncHandler(async (req,res)=>{
 
      // get user details
      const {username,fullName,email,password}=req.body  // Destructure 
-     console.log(`email:${email}, username:${username}, password:${password}`);
+    //  console.log(`email:${email}, username:${username}, password:${password}`);
     
      // we can validate all fileds like this using "if(){}" but there is another better way to validate fields
     //  if(fullName===""){
@@ -44,21 +61,28 @@ const registerUser = asyncHandler(async (req,res)=>{
     const existedUser= await User.findOne({  
         $or:[{ username },{ email }]   //check if user existed with this username/email and returns 'True' is already existed
     })
-    //console.log(existedUser);
+    console.log(existedUser);
 
     if (existedUser) {
         throw new ApiError(409,"User with email or username already exists")
     }
-
-    // check for iamges 
+    console.log(req.files);
+    
+    // check for images 
     const avatarLocalPath=req.files?.avatar[0]?.path;
-    const coverImageLocalPath=req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath=req.files?.coverImage[0]?.path; // checking for coverimageLocalPath but gives error if cover image will not uploaded 
+
+    // checking for coverImageLocalPath (advanced way than uppar way )
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length> 0) {
+        coverImageLocalPath=req.files.coverImage[0].path
+    }
 
     // check whether AvatarLocalPath is available or not 
     if (!avatarLocalPath) {
         throw new ApiError(400,"Avatar file is required") 
     }
-
+    
     // upload images on cloudinary 
     const avatar=await uploadOnCloudinary(avatarLocalPath)
     const coverImage=await uploadOnCloudinary(coverImageLocalPath)
@@ -68,7 +92,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     // create User object  
-    const user=await User.create({
+    const user=await User.create({ 
         fullName,
         avatar:avatar.url,
         coverImage:coverImage?.url || "",  // ? check for the coverImage is available or not 
@@ -88,8 +112,97 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     return res.status(201).json(
-        new ApiResponse(200,createduser,"User Registered Succesfully!!!")
+        new ApiResponse(200,createduser,"User Registered Succesfully!!!")  // IMP 
     )
 })
 
-export default registerUser
+const loginUser = asyncHandler(async(req, res)=>{
+
+    /* Steps for logged in user */
+
+    // took data from req.body (req.body-> data)
+    // username / email based access
+    // find the user if existed or not 
+    // if existed then check password
+    // access and refresh token
+    // send cookie 
+    
+    // get data
+    const {email,username,password}= req.body
+    
+    if (!email || !username) {  // depends on requirment we give username/email based access
+        throw new ApiError(400,"username or email is required")
+    }
+    if (!password) {
+        throw new ApiError(400,"passsword is required")  // by self 
+    }
+    
+    // check for email or username whether existed in databse or not    
+    const user=await User.findOne({  // User comes from databse 
+        $or:[{email},{username}]   // $or is a ongodb operator 
+    })
+    
+    if (!user) {
+        throw new ApiError(404,"user does not exits!!")
+    }
+    
+    const isPasswordValid=await user.isPasswordCorrect(password)  //here we pass the password to the isPasswordCorrect method which is in user model
+      
+    if (!isPasswordValid) {
+    throw new ApiError(401,"Incorrect Password")
+    }
+
+    const {accessToken,refreshToken}= await generateAccessAndRefreshTokens(user._id)
+
+    const logedInUser=await User.findById(user._id).select("-password refreshToken")
+
+    const options={
+        httpOnly: true,
+        secure: true,
+    }
+
+    return res
+    .status(200)
+    .cookie("accessTOken",accessToken,options)
+    .cookie("refresToken",refreshToken,options)
+    .json( 
+        new ApiResponse(
+            200,
+            {
+                user:logedInUser , accessToken, refreshToken
+            },
+            "user logged In successfully!!!"
+        )
+    )
+})
+
+const logoutUser= asyncHandler(async(req,res)=>{
+    User.findByIdAndUpdate(
+         req.user._id,
+         {
+            $set:{
+                refreshToken: undefined
+            },
+         },
+         {
+            new:true,
+         }
+    )
+
+    const options={
+        httpOnly: true,
+        secure: true,
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(200,{},"User logged Out "))
+})
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser
+}
