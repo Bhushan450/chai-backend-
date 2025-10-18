@@ -22,6 +22,6 @@ router.route("/register").post(  // "/register"=> is a route
 router.route("/login").post(loginUser)
 
 // secured routes
-router.route("logout").post(verifyJWT,logoutUser)
+router.route("/logout").post(verifyJWT, logoutUser)   // verifyJWT : we injects middleware before logout  
 
 export default router   

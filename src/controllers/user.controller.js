@@ -10,8 +10,8 @@ const generateAccessAndRefreshTokens= async (userId)=>{
        const accessToken=user.generateAccessToken()
        const refreshToken=user.generateRefreshToken()
 
-       user.refreshToken= refreshToken   
-       await user.save({validateBeforeSave: false})  // save refreshToken into database 
+       user.refreshToken= refreshToken   // add refreshToken to the user 
+       await user.save({ validateBeforeSave: false})  // save refreshToken into database  // valBeforeSave : save without any validation 
 
        return {accessToken, refreshToken}
        
@@ -20,6 +20,7 @@ const generateAccessAndRefreshTokens= async (userId)=>{
         
     }
 }
+
 
 const registerUser = asyncHandler(async (req,res)=>{
      /* Steps for register user in databse*/
@@ -130,7 +131,7 @@ const loginUser = asyncHandler(async(req, res)=>{
     // get data
     const {email,username,password}= req.body
     
-    if (!email || !username) {  // depends on requirment we give username/email based access
+    if (!email && !username) {  // depends on requirment we give username/email based access
         throw new ApiError(400,"username or email is required")
     }
     if (!password) {
@@ -150,38 +151,41 @@ const loginUser = asyncHandler(async(req, res)=>{
       
     if (!isPasswordValid) {
     throw new ApiError(401,"Incorrect Password")
-    }
+    } 
 
     const {accessToken,refreshToken}= await generateAccessAndRefreshTokens(user._id)
 
-    const logedInUser=await User.findById(user._id).select("-password refreshToken")
+    // remove this information from cookies 
+    const loggedInUser=await User.findById(user._id).select("-password refreshToken")  
 
+    // send cookies 
     const options={
-        httpOnly: true,
-        secure: true,
+        httpOnly: true,  
+        secure: true,  // through this steps cookies cannot madifyable from frontend onlt can modifyable from server/backend
     }
 
     return res
     .status(200)
-    .cookie("accessTOken",accessToken,options)
-    .cookie("refresToken",refreshToken,options)
+    .cookie("accessToken",accessToken,options)  // add cookie
+    .cookie("refresToken",refreshToken,options)  // add cookie 
     .json( 
         new ApiResponse(
             200,
             {
-                user:logedInUser , accessToken, refreshToken
+                user:loggedInUser , accessToken, refreshToken
             },
             "user logged In successfully!!!"
         )
     )
 })
 
+// here we introduce new middleware of authentication : we need 'user': user._id access here 
 const logoutUser= asyncHandler(async(req,res)=>{
-    User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
          req.user._id,
          {
-            $set:{
-                refreshToken: undefined
+            $set:{                        // $set : mongoDB operator 
+                refreshToken: undefined  // clear refreshToken from database 
             },
          },
          {
@@ -196,9 +200,9 @@ const logoutUser= asyncHandler(async(req,res)=>{
 
     return res
     .status(200)
-    .clearCookie("accessToken",options)
-    .clearCookie("refreshToken",options)
-    .json(new ApiResponse(200,{},"User logged Out "))
+    .clearCookie("accessToken",options)  // clear / delete cookie
+    .clearCookie("refreshToken",options) // clear / delete cookie  
+    .json(new ApiResponse(200,{},"User logged Out!!"))
 })
 
 export {
